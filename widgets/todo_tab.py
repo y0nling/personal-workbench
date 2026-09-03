@@ -9,14 +9,15 @@ from datetime import datetime
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QComboBox,
     QDateEdit, QPushButton, QLabel, QScrollArea, QFrame,
-    QMessageBox, QDialog, QSplitter, QToolButton, QMenu, QAction
+    QMessageBox, QDialog, QSplitter, QListWidget, QListWidgetItem,
+    QAbstractItemView
 )
-from PyQt5.QtCore import Qt, QDate, QSize
-from PyQt5.QtGui import QIcon, QColor, QPixmap, QPainter, QPen
+from PyQt5.QtCore import Qt, QDate, QSize, QTimer
+from PyQt5.QtGui import QIcon, QFontMetrics
 
 from widgets.todo_dialog import TodoDialog
 from widgets.todo_calendar import TodoCalendar
-from utils.icons import svg_pixmap, ICON_PLUS, ICON_EDIT, ICON_DELETE
+from utils.icons import svg_pixmap, ICON_PLUS, ICON_EDIT, ICON_DELETE, ICON_CHEVRON_DOWN
 
 
 # 圆点图标（SVG），按状态着色
@@ -174,22 +175,19 @@ class TodoTab(QWidget):
         self.input_content.returnPressed.connect(self.quick_add)
         add_layout.addWidget(self.input_content, 1)
 
-        self.combo_owner = QToolButton()
-        self.combo_owner.setText("无负责人")
-        self.combo_owner.setPopupMode(QToolButton.InstantPopup)
+        # 负责人多选按钮：点击弹出复选列表，一次打开可连续勾选多项
+        self.combo_owner = QPushButton("无负责人")
         self.combo_owner.setMinimumHeight(34)
-        self.combo_owner.setMaximumWidth(150)
+        self.combo_owner.setMaximumWidth(220)
+        self.combo_owner.setCursor(Qt.PointingHandCursor)
         self.combo_owner.setStyleSheet(
-            "QToolButton { background: transparent; border: 1px solid #cbd5e1;"
-            " border-radius: 6px; padding: 0 10px; }"
-            "QToolButton:hover { border-color: #2563eb; }"
-            "QMenu::item { padding: 6px 20px; }"
-            "QMenu::item:selected { background-color: #dbeafe; }"
+            "QPushButton { background: #ffffff; border: 1px solid #cbd5e1;"
+            " border-radius: 6px; padding: 0 10px; text-align: left; }"
+            "QPushButton:hover { border-color: #2563eb; }"
         )
-        self.owner_menu = QMenu(self)
-        self.combo_owner.setMenu(self.owner_menu)
+        self.combo_owner.setIcon(QIcon(svg_pixmap(ICON_CHEVRON_DOWN, 12, "#64748b")))
+        self.combo_owner.clicked.connect(self.open_owner_picker)
         self._quick_owners = set()  # 快速添加时选中的负责人
-        self.reload_owners()
         add_layout.addWidget(self.combo_owner)
 
         self.edit_deadline = QDateEdit()
@@ -243,31 +241,23 @@ class TodoTab(QWidget):
         self.splitter.setSizes([320, 400])
         root.addWidget(self.splitter, 1)
 
-    def reload_owners(self):
-        """重新加载负责人多选菜单（人员变化后调用）"""
-        self.owner_menu.clear()
-        # 保留已勾选项（去掉已删除人员）
-        self._quick_owners = {n for n in self._quick_owners if n in self.data.people}
-        for person in self.data.people:
-            act = QAction(person, self)
-            act.setCheckable(True)
-            act.setChecked(person in self._quick_owners)
-            act.triggered.connect(lambda checked, name=person: self._toggle_quick_owner(name, checked))
-            self.owner_menu.addAction(act)
-        self._update_owner_button_text()
-
-    def _toggle_quick_owner(self, name, checked):
-        if checked:
-            self._quick_owners.add(name)
-        else:
-            self._quick_owners.discard(name)
-        self._update_owner_button_text()
+    def open_owner_picker(self):
+        """打开负责人复选弹窗：一次打开可连续勾选多项"""
+        dlg = OwnerPickerDialog(self.data.people, self._quick_owners, self)
+        if dlg.exec_() == QDialog.Accepted:
+            self._quick_owners = dlg.selected_owners()
+            self._update_owner_button_text()
 
     def _update_owner_button_text(self):
+        """更新负责人按钮文字，过长时截断加省略号，防止按钮被撑开"""
         if self._quick_owners:
-            self.combo_owner.setText("、".join(sorted(self._quick_owners)))
+            text = "、".join(sorted(self._quick_owners))
         else:
-            self.combo_owner.setText("无负责人")
+            text = "无负责人"
+        metrics = QFontMetrics(self.combo_owner.font())
+        # 预留图标与内边距宽度
+        avail = self.combo_owner.maximumWidth() - 40
+        self.combo_owner.setText(metrics.elidedText(text, Qt.ElideRight, avail))
 
     def quick_add(self):
         content = self.input_content.text().strip()
@@ -282,7 +272,9 @@ class TodoTab(QWidget):
         self.refresh()
 
     def refresh(self):
-        self.reload_owners()
+        # 清理已删除人员，更新按钮显示
+        self._quick_owners = {n for n in self._quick_owners if n in self.data.people}
+        self._update_owner_button_text()
         self.calendar.refresh()
         todos = self.data.sorted_todos()
         filt = self.filter_combo.currentText()
@@ -363,3 +355,49 @@ class TodoTab(QWidget):
         if reply == QMessageBox.Yes:
             self.data.delete_todo(todo_id)
             self.refresh()
+
+
+class OwnerPickerDialog(QDialog):
+    """负责人复选弹窗：一次打开可连续勾选多项"""
+
+    def __init__(self, people, selected, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("选择负责人（可多选）")
+        self.setMinimumSize(240, 320)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+
+        layout = QVBoxLayout(self)
+        layout.setSpacing(10)
+
+        hint = QLabel("勾选负责人，可多选：")
+        hint.setStyleSheet("color: #64748b;")
+        layout.addWidget(hint)
+
+        self.list_widget = QListWidget()
+        self.list_widget.setSelectionMode(QAbstractItemView.NoSelection)
+        for person in people:
+            item = QListWidgetItem(person)
+            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+            item.setCheckState(Qt.Checked if person in selected else Qt.Unchecked)
+            self.list_widget.addItem(item)
+        layout.addWidget(self.list_widget, 1)
+
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        btn_ok = QPushButton("确 定")
+        btn_ok.setProperty("class", "primary")
+        btn_ok.clicked.connect(self.accept)
+        btn_cancel = QPushButton("取 消")
+        btn_cancel.clicked.connect(self.reject)
+        btn_row.addWidget(btn_ok)
+        btn_row.addWidget(btn_cancel)
+        layout.addLayout(btn_row)
+
+    def selected_owners(self):
+        """返回勾选的负责人列表"""
+        result = []
+        for i in range(self.list_widget.count()):
+            item = self.list_widget.item(i)
+            if item.checkState() == Qt.Checked:
+                result.append(item.text())
+        return sorted(result)

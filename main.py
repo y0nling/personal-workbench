@@ -10,6 +10,7 @@ import traceback
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QMessageBox
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon
+from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 
 from config import APP_NAME
 from models import WorkbenchData
@@ -17,18 +18,59 @@ from widgets.project_tab import ProjectTab
 from widgets.todo_tab import TodoTab
 from widgets.summary_tab import SummaryTab
 from widgets.people_tab import PeopleTab
+from widgets.personal_center import PersonalCenterTab
+from widgets.login_dialog import LoginDialog
 from widgets.tray_icon import TrayIcon
-from utils.style import APP_STYLE
+from utils.style import build_app_style
 from utils.icons import app_icon
+from utils.auth import AuthManager
+from utils.settings import AppSettings
 
 
 LOG_PATH = os.path.join(os.environ.get("TEMP", "."), "workbench_error.log")
 
+# 单实例本地 socket 名
+SINGLE_INSTANCE_KEY = "PersonalWorkbench_SingleInstance_y0nling"
+
+
+def activate_existing_instance():
+    """尝试连接已运行的实例并通知其激活窗口。成功返回 True，表示已有实例在运行。"""
+    socket = QLocalSocket()
+    socket.connectToServer(SINGLE_INSTANCE_KEY)
+    if socket.waitForConnected(500):
+        socket.write(b"activate")
+        socket.flush()
+        socket.waitForBytesWritten(500)
+        socket.disconnectFromServer()
+        return True
+    return False
+
+
+class SingleInstanceServer(QLocalServer):
+    """监听重复启动请求：收到连接时激活主窗口"""
+
+    def __init__(self, window, parent=None):
+        super().__init__(parent)
+        self.window = window
+        self.newConnection.connect(self._on_new_connection)
+
+    def _on_new_connection(self):
+        socket = self.nextPendingConnection()
+        if socket:
+            socket.waitForReadyRead(300)
+            socket.close()
+            socket.deleteLater()
+        # 激活已有窗口
+        self.window.show()
+        self.window.raise_()
+        self.window.activateWindow()
+
 
 class MainWindow(QMainWindow):
-    def __init__(self, data, parent=None):
+    def __init__(self, data, settings, parent=None):
         super().__init__(parent)
         self.data = data
+        self.settings = settings
         self.setWindowTitle(APP_NAME)
         self.setWindowIcon(app_icon())
         self.setMinimumSize(1200, 750)
@@ -43,11 +85,13 @@ class MainWindow(QMainWindow):
         self.todo_tab = TodoTab(self.data)
         self.summary_tab = SummaryTab(self.data)
         self.people_tab = PeopleTab(self.data)
+        self.personal_tab = PersonalCenterTab(self.settings)
 
         self.tabs.addTab(self.project_tab, "项目看板")
         self.tabs.addTab(self.todo_tab, "待办事项")
         self.tabs.addTab(self.summary_tab, "周总结")
         self.tabs.addTab(self.people_tab, "人员管理")
+        self.tabs.addTab(self.personal_tab, "个人中心")
 
         self.tabs.currentChanged.connect(self.on_tab_changed)
 
@@ -87,12 +131,35 @@ def main():
         app = QApplication(sys.argv)
         app.setQuitOnLastWindowClosed(False)
         app.setStyle("Fusion")
-        app.setStyleSheet(APP_STYLE)
+
+        # ===== 单实例：重复启动时激活已有窗口后退出 =====
+        if activate_existing_instance():
+            sys.exit(0)
+
+        # 移除残留的 socket（上次异常退出可能残留）
+        QLocalServer.removeServer(SINGLE_INSTANCE_KEY)
+        single_server = None  # 延后创建，等主窗口生成
+
+        # ===== 应用设置与样式 =====
+        settings = AppSettings()
+        app.setStyleSheet(build_app_style(settings.font_scale))
+
+        # ===== 登录 =====
+        auth = AuthManager()
+        login = LoginDialog(auth)
+        if login.exec_() != QDialog.Accepted:
+            sys.exit(0)
 
         data = WorkbenchData()
 
-        window = MainWindow(data)
+        window = MainWindow(data, settings)
+        # 登录成功后把 auth 注入个人中心
+        window.personal_tab.set_auth(auth)
         window.show()
+
+        # 启动单实例监听
+        single_server = SingleInstanceServer(window)
+        single_server.listen(SINGLE_INSTANCE_KEY)
 
         tray = TrayIcon()
         tray.show_main.connect(window.show)
