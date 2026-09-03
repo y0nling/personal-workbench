@@ -54,7 +54,9 @@ class ProjectTab(QWidget):
             "待协调事项", "备注", "操作"
         ])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        for col in [0, 2, 3, 4, 5]:
+        # 项目成员列放自定义 Widget（多 QLabel 混色），ResizeToContents 只按表头算宽会挤掉名字，
+        # 必须 Stretch 让出足够宽度；短列才用 ResizeToContents
+        for col in [0, 2, 4, 5]:
             self.table.horizontalHeader().setSectionResizeMode(col, QHeaderView.ResizeToContents)
         # 操作列固定宽度，避免按钮被挤压
         self.table.horizontalHeader().setSectionResizeMode(8, QHeaderView.Fixed)
