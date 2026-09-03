@@ -64,7 +64,8 @@ class ProjectTab(QWidget):
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.verticalHeader().setVisible(False)
-        self.table.verticalHeader().setDefaultSectionSize(46)
+        # 行高必须大于按钮尺寸 + QSS padding 引起的 sizeHint 高度，避免按钮被垂直压缩
+        self.table.verticalHeader().setDefaultSectionSize(56)
         layout.addWidget(self.table)
 
     def refresh(self):
@@ -86,41 +87,53 @@ class ProjectTab(QWidget):
             self.table.setItem(i, 6, QTableWidgetItem(short_datetime(p.get("createdAt", ""))))
             self.table.setItem(i, 7, QTableWidgetItem(short_datetime(p.get("updatedAt", ""))))
 
-            # 操作按钮：纯图标，居中放置，自动适应当前行高
-            op_widget = QWidget()
-            op_layout = QHBoxLayout(op_widget)
-            op_layout.setContentsMargins(4, 0, 4, 0)
-            op_layout.setSpacing(6)
-
+            # 操作按钮：用 上下stretch 让按钮按固定尺寸自然垂直居中，
+            # 避免 QHBoxLayout+addStretch 依赖按钮 sizeHint 导致高度被压缩。
             btn_edit = QPushButton()
-            btn_edit.setFixedSize(36, 36)
+            btn_edit.setFixedSize(34, 34)
             btn_edit.setIcon(QIcon(svg_pixmap(ICON_EDIT, 18, "#2563eb")))
             btn_edit.setIconSize(QSize(18, 18))
             btn_edit.setFlat(True)
             btn_edit.setCursor(Qt.PointingHandCursor)
             btn_edit.setToolTip("编辑项目")
+            # 显式覆盖全局 QSS 的 min-height 和 padding，防止按钮被撑到 44px 高
             btn_edit.setStyleSheet(
-                "QPushButton { border: none; background: transparent; border-radius: 10px; }"
+                "QPushButton { border: none; background: transparent; border-radius: 9px;"
+                " min-height: 0px; min-width: 0px; padding: 0px; }"
                 "QPushButton:hover { background-color: #eff6ff; }"
             )
             btn_edit.clicked.connect(lambda _, pid=p["id"]: self.edit_project(pid))
 
             btn_delete = QPushButton()
-            btn_delete.setFixedSize(36, 36)
+            btn_delete.setFixedSize(34, 34)
             btn_delete.setIcon(QIcon(svg_pixmap(ICON_DELETE, 18, "#dc2626")))
             btn_delete.setIconSize(QSize(18, 18))
             btn_delete.setFlat(True)
             btn_delete.setCursor(Qt.PointingHandCursor)
             btn_delete.setToolTip("删除项目")
             btn_delete.setStyleSheet(
-                "QPushButton { border: none; background: transparent; border-radius: 10px; }"
+                "QPushButton { border: none; background: transparent; border-radius: 9px;"
+                " min-height: 0px; min-width: 0px; padding: 0px; }"
                 "QPushButton:hover { background-color: #fef2f2; }"
             )
             btn_delete.clicked.connect(lambda _, pid=p["id"]: self.delete_project(pid))
 
+            # 水平子布局放两个按钮，外层垂直布局加 stretch 保证垂直居中
+            btn_row = QWidget()
+            btn_row_layout = QHBoxLayout(btn_row)
+            btn_row_layout.setContentsMargins(0, 0, 0, 0)
+            btn_row_layout.setSpacing(8)
+            btn_row_layout.addStretch()
+            btn_row_layout.addWidget(btn_edit)
+            btn_row_layout.addWidget(btn_delete)
+            btn_row_layout.addStretch()
+
+            op_widget = QWidget()
+            op_layout = QVBoxLayout(op_widget)
+            op_layout.setContentsMargins(4, 0, 4, 0)
+            op_layout.setSpacing(0)
             op_layout.addStretch()
-            op_layout.addWidget(btn_edit)
-            op_layout.addWidget(btn_delete)
+            op_layout.addWidget(btn_row)
             op_layout.addStretch()
             self.table.setCellWidget(i, 8, op_widget)
 

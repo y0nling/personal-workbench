@@ -46,7 +46,8 @@ class PeopleTab(QWidget):
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.verticalHeader().setVisible(False)
-        self.table.verticalHeader().setDefaultSectionSize(46)
+        # 行高必须大于按钮尺寸 + QSS padding 引起的 sizeHint 高度，避免按钮被垂直压缩
+        self.table.verticalHeader().setDefaultSectionSize(56)
         layout.addWidget(self.table)
 
     def refresh(self):
@@ -55,27 +56,29 @@ class PeopleTab(QWidget):
             self.table.setItem(i, 0, QTableWidgetItem(str(i + 1)))
             self.table.setItem(i, 1, QTableWidgetItem(person))
 
-            # 操作按钮：纯图标，居中放置，自动适应当前行高
-            op_widget = QWidget()
-            op_layout = QHBoxLayout(op_widget)
-            op_layout.setContentsMargins(4, 0, 4, 0)
-            op_layout.setSpacing(0)
-
+            # 操作按钮：用 上下stretch 让按钮按固定尺寸自然垂直居中，
+            # 避免 QHBoxLayout+addStretch 依赖按钮 sizeHint 导致高度被压缩。
             btn_delete = QPushButton()
-            btn_delete.setFixedSize(36, 36)
+            btn_delete.setFixedSize(34, 34)
             btn_delete.setIcon(QIcon(svg_pixmap(ICON_DELETE, 18, "#dc2626")))
             btn_delete.setIconSize(QSize(18, 18))
             btn_delete.setFlat(True)
             btn_delete.setCursor(Qt.PointingHandCursor)
             btn_delete.setToolTip(f"删除人员【{person}】")
+            # 显式覆盖全局 QSS 的 min-height 和 padding，防止按钮被撑到 44px 高
             btn_delete.setStyleSheet(
-                "QPushButton { border: none; background: transparent; border-radius: 10px; }"
+                "QPushButton { border: none; background: transparent; border-radius: 9px;"
+                " min-height: 0px; min-width: 0px; padding: 0px; }"
                 "QPushButton:hover { background-color: #fef2f2; }"
             )
             btn_delete.clicked.connect(lambda _, name=person: self.delete_person(name))
 
+            op_widget = QWidget()
+            op_layout = QVBoxLayout(op_widget)
+            op_layout.setContentsMargins(4, 0, 4, 0)
+            op_layout.setSpacing(0)
             op_layout.addStretch()
-            op_layout.addWidget(btn_delete)
+            op_layout.addWidget(btn_delete, alignment=Qt.AlignHCenter)
             op_layout.addStretch()
             self.table.setCellWidget(i, 2, op_widget)
 
