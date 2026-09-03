@@ -9,12 +9,13 @@ from datetime import datetime
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QComboBox,
     QDateEdit, QPushButton, QLabel, QScrollArea, QFrame,
-    QMessageBox, QDialog
+    QMessageBox, QDialog, QSplitter
 )
 from PyQt5.QtCore import Qt, QDate, QSize
 from PyQt5.QtGui import QIcon, QColor, QPixmap, QPainter, QPen
 
 from widgets.todo_dialog import TodoDialog
+from widgets.todo_calendar import TodoCalendar
 from utils.icons import svg_pixmap, ICON_PLUS, ICON_EDIT, ICON_DELETE
 
 
@@ -217,7 +218,19 @@ class TodoTab(QWidget):
         self.scroll.setWidgetResizable(True)
         self.scroll.setFrameShape(QFrame.NoFrame)
         self.scroll.setStyleSheet("QScrollArea { background: transparent; }")
-        root.addWidget(self.scroll, 1)
+
+        # 月历视图（上半部分）
+        self.calendar = TodoCalendar(self.data)
+        self.calendar.day_clicked.connect(self.on_calendar_day_clicked)
+
+        # 上下分割：月历 / 待办列表
+        self.splitter = QSplitter(Qt.Vertical)
+        self.splitter.addWidget(self.calendar)
+        self.splitter.addWidget(self.scroll)
+        self.splitter.setStretchFactor(0, 0)
+        self.splitter.setStretchFactor(1, 1)
+        self.splitter.setSizes([320, 400])
+        root.addWidget(self.splitter, 1)
 
     def reload_owners(self):
         """重新加载负责人下拉（人员变化后调用）"""
@@ -240,6 +253,7 @@ class TodoTab(QWidget):
 
     def refresh(self):
         self.reload_owners()
+        self.calendar.refresh()
         todos = self.data.sorted_todos()
         filt = self.filter_combo.currentText()
 
@@ -285,6 +299,13 @@ class TodoTab(QWidget):
 
         layout.addStretch()
         self.scroll.setWidget(container)
+
+    def on_calendar_day_clicked(self, day_str):
+        """点击日历某天：在快速输入栏填入该日期，方便直接添加当天待办"""
+        d = QDate.fromString(day_str, "yyyy-MM-dd")
+        if d.isValid():
+            self.edit_deadline.setDate(d)
+            self.input_content.setFocus()
 
     def toggle_todo(self, todo_id):
         todo = next((t for t in self.data.todos if t["id"] == todo_id), None)
