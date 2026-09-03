@@ -7,6 +7,8 @@ from PyQt5.QtWidgets import QSystemTrayIcon, QMenu, QAction
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QIcon
 
+from utils.icons import app_icon
+
 
 class TrayIcon(QSystemTrayIcon):
     show_main = pyqtSignal()
@@ -15,8 +17,7 @@ class TrayIcon(QSystemTrayIcon):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setToolTip("个人工作台")
-        # 由于没有真实图标，使用内嵌风格图标
-        self.setIcon(QIcon())
+        self.setIcon(app_icon())
 
         self.menu = QMenu(parent)
 

@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
     QPushButton, QLabel, QHeaderView, QMessageBox, QDialog
 )
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QColor, QIcon
 
 from models import short_datetime
@@ -58,10 +58,13 @@ class ProjectTab(QWidget):
         self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(8, QHeaderView.ResizeToContents)
+        # 操作列固定宽度，避免按钮被挤压
+        self.table.horizontalHeader().setSectionResizeMode(8, QHeaderView.Fixed)
+        self.table.setColumnWidth(8, 100)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.verticalHeader().setVisible(False)
+        self.table.verticalHeader().setDefaultSectionSize(46)
         layout.addWidget(self.table)
 
     def refresh(self):
@@ -83,24 +86,42 @@ class ProjectTab(QWidget):
             self.table.setItem(i, 6, QTableWidgetItem(short_datetime(p.get("createdAt", ""))))
             self.table.setItem(i, 7, QTableWidgetItem(short_datetime(p.get("updatedAt", ""))))
 
-            # 操作按钮
+            # 操作按钮：纯图标，悬停提示，避免文字被截断
             op_widget = QWidget()
             op_layout = QHBoxLayout(op_widget)
-            op_layout.setContentsMargins(4, 2, 4, 2)
-            op_layout.setSpacing(6)
+            op_layout.setContentsMargins(6, 4, 6, 4)
+            op_layout.setSpacing(8)
 
-            btn_edit = QPushButton("编辑")
-            btn_edit.setProperty("class", "btn-sm")
-            btn_edit.setIcon(QIcon(svg_pixmap(ICON_EDIT, 14, "#2563eb")))
+            btn_edit = QPushButton()
+            btn_edit.setFixedSize(32, 32)
+            btn_edit.setIcon(QIcon(svg_pixmap(ICON_EDIT, 15, "#2563eb")))
+            btn_edit.setIconSize(QSize(15, 15))
+            btn_edit.setFlat(True)
+            btn_edit.setCursor(Qt.PointingHandCursor)
+            btn_edit.setToolTip("编辑项目")
+            btn_edit.setStyleSheet(
+                "QPushButton { border: none; background: transparent; border-radius: 8px; }"
+                "QPushButton:hover { background-color: #eff6ff; }"
+            )
             btn_edit.clicked.connect(lambda _, pid=p["id"]: self.edit_project(pid))
 
-            btn_delete = QPushButton("删除")
-            btn_delete.setProperty("class", "danger btn-sm")
-            btn_delete.setIcon(QIcon(svg_pixmap(ICON_DELETE, 14, "#dc2626")))
+            btn_delete = QPushButton()
+            btn_delete.setFixedSize(32, 32)
+            btn_delete.setIcon(QIcon(svg_pixmap(ICON_DELETE, 15, "#dc2626")))
+            btn_delete.setIconSize(QSize(15, 15))
+            btn_delete.setFlat(True)
+            btn_delete.setCursor(Qt.PointingHandCursor)
+            btn_delete.setToolTip("删除项目")
+            btn_delete.setStyleSheet(
+                "QPushButton { border: none; background: transparent; border-radius: 8px; }"
+                "QPushButton:hover { background-color: #fef2f2; }"
+            )
             btn_delete.clicked.connect(lambda _, pid=p["id"]: self.delete_project(pid))
 
+            op_layout.addStretch()
             op_layout.addWidget(btn_edit)
             op_layout.addWidget(btn_delete)
+            op_layout.addStretch()
             self.table.setCellWidget(i, 8, op_widget)
 
     def set_status_style(self, item, status):

@@ -19,6 +19,7 @@ from widgets.summary_tab import SummaryTab
 from widgets.people_tab import PeopleTab
 from widgets.tray_icon import TrayIcon
 from utils.style import APP_STYLE
+from utils.icons import app_icon
 
 
 LOG_PATH = os.path.join(os.environ.get("TEMP", "."), "workbench_error.log")
@@ -29,6 +30,7 @@ class MainWindow(QMainWindow):
         super().__init__(parent)
         self.data = data
         self.setWindowTitle(APP_NAME)
+        self.setWindowIcon(app_icon())
         self.setMinimumSize(1200, 750)
         self.resize(1400, 850)
         self.center()

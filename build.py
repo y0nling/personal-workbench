@@ -18,7 +18,7 @@ def main():
         VENV_PYTHON, "-m", "PyInstaller",
         "--name=个人工作台",
         "--onefile",
-        "--console",
+        "--windowed",
         "--noconfirm",
         "--clean",
         "--hidden-import=PyQt5.sip",

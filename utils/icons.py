@@ -38,6 +38,21 @@ ICON_DELETE = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fil
 
 ICON_EDIT = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>"""
 
+# 应用图标（用于托盘和窗口）：盾牌 + 勾选，体现安全工作台定位
+APP_ICON_SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#2563eb"/>
+  <path d="M32 10 L52 18 V32 C52 45 43 52 32 56 C21 52 12 45 12 32 V18 Z"
+        fill="#ffffff" opacity="0.95"/>
+  <path d="M23 33 L29 39 L42 26" fill="none" stroke="#2563eb"
+        stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>"""
+
+
+def app_icon():
+    """生成应用图标 QIcon（用于托盘、窗口标题栏）"""
+    from PyQt5.QtGui import QIcon
+    return QIcon(svg_pixmap(APP_ICON_SVG, 64))
+
 ICON_USER = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>"""
 
 ICON_FILE_TEXT = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M10 13H8"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>"""
