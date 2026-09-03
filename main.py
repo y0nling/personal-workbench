@@ -6,6 +6,8 @@
 import sys
 import os
 import traceback
+import ctypes
+import threading
 
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QMessageBox, QDialog
 from PyQt5.QtCore import Qt, QTimer
@@ -29,25 +31,67 @@ from utils.settings import AppSettings
 
 LOG_PATH = os.path.join(os.environ.get("TEMP", "."), "workbench_error.log")
 
-# 单实例本地 socket 名
-SINGLE_INSTANCE_KEY = "PersonalWorkbench_SingleInstance_y0nling"
+# 单实例：Windows 命名互斥体（内核对象，进程被杀自动释放，绝无僵尸）
+MUTEX_NAME = "Local\\PersonalWorkbench_Mutex_y0nling"
+# 激活已有窗口的本地 socket 名
+SINGLE_INSTANCE_KEY = "PersonalWorkbench_Activate_y0nling"
+
+_kernel32 = ctypes.windll.kernel32 if sys.platform == "win32" else None
+
+
+def is_first_instance():
+    """判断是否为第一个实例。先 OpenMutex 探测是否已存在：
+    - 能打开（已存在）→ 不是第一个实例，返回 False
+    - 打不开 → 创建并占住互斥体，是第一个实例，返回 True
+    命名互斥体是内核对象，进程被杀自动释放，绝无僵尸。"""
+    if _kernel32 is None:
+        return True  # 非 Windows 不做单实例限制
+    # 先探测是否已有别的进程创建了互斥体
+    existing = _kernel32.OpenMutexW(0x00100000, False, MUTEX_NAME)  # SYNCHRONIZE
+    if existing:
+        _kernel32.CloseHandle(existing)
+        return False
+    # 没有则创建占住
+    _kernel32.CreateMutexW(None, True, MUTEX_NAME)
+    return True
 
 
 def activate_existing_instance():
-    """尝试连接已运行的实例并通知其激活窗口。成功返回 True，表示已有实例在运行。"""
+    """已有实例在跑时，连它的本地 socket 通知激活窗口。返回是否成功通知。"""
     socket = QLocalSocket()
     socket.connectToServer(SINGLE_INSTANCE_KEY)
-    if socket.waitForConnected(500):
+    if socket.waitForConnected(400):
         socket.write(b"activate")
         socket.flush()
-        socket.waitForBytesWritten(500)
+        socket.waitForBytesWritten(400)
         socket.disconnectFromServer()
         return True
     return False
 
 
+def activate_existing_instance():
+    """尝试连接已运行的实例并通知其激活窗口。
+    成功返回 True，表示确有实例在运行；连接后无 ACK 视为残留 socket，返回 False。
+    纯阻塞实现，不依赖 Qt 事件循环（本函数在事件循环启动前调用）。"""
+    socket = QLocalSocket()
+    socket.connectToServer(SINGLE_INSTANCE_KEY)
+    if not socket.waitForConnected(500):
+        socket.abort()
+        return False
+    socket.write(b"activate")
+    socket.flush()
+    socket.waitForBytesWritten(500)
+    # 等待对方回 ACK。真实例在子线程里阻塞回 ACK；
+    # 残留僵尸管道没人回，超时说明没有真实例。
+    if socket.waitForReadyRead(800) and bytes(socket.readAll()) == b"ack":
+        socket.disconnectFromServer()
+        return True
+    socket.abort()
+    return False
+
+
 class SingleInstanceServer(QLocalServer):
-    """监听重复启动请求：收到连接时激活主窗口"""
+    """监听重复启动请求：收到连接时激活主窗口（真实例事件循环已跑，正常响应）"""
 
     def __init__(self, window, parent=None):
         super().__init__(parent)
@@ -132,11 +176,12 @@ def main():
         app.setQuitOnLastWindowClosed(False)
         app.setStyle("Fusion")
 
-        # ===== 单实例：重复启动时激活已有窗口后退出 =====
-        if activate_existing_instance():
+        # ===== 单实例：Windows 命名互斥体判断，重复启动时激活已有窗口后退出 =====
+        if not is_first_instance():
+            activate_existing_instance()
             sys.exit(0)
 
-        # 移除残留的 socket（上次异常退出可能残留）
+        # 第一个实例：清掉可能残留的激活 socket（上次异常退出遗留）
         QLocalServer.removeServer(SINGLE_INSTANCE_KEY)
         single_server = None  # 延后创建，等主窗口生成
 

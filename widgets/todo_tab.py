@@ -222,23 +222,24 @@ class TodoTab(QWidget):
         filter_row.addStretch()
         root.addLayout(filter_row)
 
-        # ===== 待办列表（未完成在上、已完成置底置灰）=====
+        # ===== 待办列表（右侧主区）=====
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
         self.scroll.setFrameShape(QFrame.NoFrame)
         self.scroll.setStyleSheet("QScrollArea { background: transparent; }")
 
-        # 月历视图（上半部分）
+        # 月历侧栏（左侧窄条）
         self.calendar = TodoCalendar(self.data)
+        self.calendar.setFixedWidth(320)
         self.calendar.day_clicked.connect(self.on_calendar_day_clicked)
 
-        # 上下分割：月历 / 待办列表
-        self.splitter = QSplitter(Qt.Vertical)
+        # 左右分栏：左=月历，右=待办列表
+        self.splitter = QSplitter(Qt.Horizontal)
         self.splitter.addWidget(self.calendar)
         self.splitter.addWidget(self.scroll)
         self.splitter.setStretchFactor(0, 0)
         self.splitter.setStretchFactor(1, 1)
-        self.splitter.setSizes([320, 400])
+        self.splitter.setSizes([320, 900])
         root.addWidget(self.splitter, 1)
 
     def open_owner_picker(self):
@@ -288,7 +289,18 @@ class TodoTab(QWidget):
         else:
             shown = undone + done
 
-        self.lbl_count.setText(f"未完成 {len(undone)} 项 · 已完成 {len(done)} 项")
+        # 日历某天被选中时，只显示该日期截止的待办
+        day_filt = self.calendar.selected_day
+        if day_filt:
+            shown = [
+                t for t in shown
+                if t.get("deadline", "").startswith(day_filt)
+            ]
+
+        count_text = f"未完成 {len(undone)} 项 · 已完成 {len(done)} 项"
+        if day_filt:
+            count_text += f" · 已筛选 {day_filt}"
+        self.lbl_count.setText(count_text)
 
         container = QWidget()
         layout = QVBoxLayout(container)
@@ -323,11 +335,9 @@ class TodoTab(QWidget):
         self.scroll.setWidget(container)
 
     def on_calendar_day_clicked(self, day_str):
-        """点击日历某天：在快速输入栏填入该日期，方便直接添加当天待办"""
-        d = QDate.fromString(day_str, "yyyy-MM-dd")
-        if d.isValid():
-            self.edit_deadline.setDate(d)
-            self.input_content.setFocus()
+        """点击日历某天：选中该日并筛选右侧列表显示当天待办"""
+        self.calendar.select_day(day_str)
+        self.refresh()
 
     def toggle_todo(self, todo_id):
         todo = next((t for t in self.data.todos if t["id"] == todo_id), None)
