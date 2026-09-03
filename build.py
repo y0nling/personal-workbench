@@ -16,7 +16,7 @@ def main():
 
     cmd = [
         VENV_PYTHON, "-m", "PyInstaller",
-        "--name=个人安全工作台",
+        "--name=个人工作台",
         "--onefile",
         "--console",
         "--noconfirm",
