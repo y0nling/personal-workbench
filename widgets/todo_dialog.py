@@ -6,11 +6,12 @@
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
     QComboBox, QDateEdit, QPushButton, QFormLayout,
-    QMessageBox
+    QMessageBox, QListWidget, QListWidgetItem, QAbstractItemView
 )
 from PyQt5.QtCore import Qt, QDate
 
 from config import TODO_STATUSES
+from widgets.project_dialog import make_check_list, checked_items
 
 
 class TodoDialog(QDialog):
@@ -37,11 +38,8 @@ class TodoDialog(QDialog):
         self.content_input.setPlaceholderText("请输入待办内容")
         form.addRow("待办内容 *", self.content_input)
 
-        self.owner_combo = QComboBox()
-        self.owner_combo.addItem("请选择", "")
-        for person in self.data.people:
-            self.owner_combo.addItem(person, person)
-        form.addRow("负责人", self.owner_combo)
+        self.owner_list = make_check_list(self.data.people)
+        form.addRow("负责人", self.owner_list)
 
         self.deadline_edit = QDateEdit()
         self.deadline_edit.setCalendarPopup(True)
@@ -77,9 +75,10 @@ class TodoDialog(QDialog):
     def load_data(self):
         t = self.todo
         self.content_input.setText(t.get("content", ""))
-        owner = t.get("owner", "")
-        index = self.owner_combo.findData(owner)
-        self.owner_combo.setCurrentIndex(index if index >= 0 else 0)
+        owner = t.get("owner") or []
+        for i in range(self.owner_list.count()):
+            it = self.owner_list.item(i)
+            it.setCheckState(Qt.Checked if it.text() in owner else Qt.Unchecked)
         deadline = t.get("deadline", "")
         if deadline:
             try:
@@ -98,7 +97,7 @@ class TodoDialog(QDialog):
         deadline = self.deadline_edit.date().toString("yyyy-MM-dd") if self.deadline_edit.date().isValid() and not self.deadline_edit.date().isNull() else ""
         return {
             "content": self.content_input.text().strip(),
-            "owner": self.owner_combo.currentData() or "",
+            "owner": checked_items(self.owner_list),
             "deadline": deadline,
             "status": self.status_combo.currentText(),
             "projectId": self.project_combo.currentData() or "",

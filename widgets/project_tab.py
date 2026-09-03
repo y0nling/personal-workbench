@@ -48,20 +48,17 @@ class ProjectTab(QWidget):
 
         # 表格
         self.table = QTableWidget()
-        self.table.setColumnCount(9)
+        self.table.setColumnCount(10)
         self.table.setHorizontalHeaderLabels([
-            "序号", "项目名称", "状态", "负责人", "开始时间", "截止日期",
+            "序号", "项目名称", "状态", "负责人", "项目成员", "开始时间", "截止日期",
             "待协调事项", "备注", "操作"
         ])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeToContents)
+        for col in [0, 2, 3, 4, 5, 6]:
+            self.table.horizontalHeader().setSectionResizeMode(col, QHeaderView.ResizeToContents)
         # 操作列固定宽度，避免按钮被挤压
-        self.table.horizontalHeader().setSectionResizeMode(8, QHeaderView.Fixed)
-        self.table.setColumnWidth(8, 100)
+        self.table.horizontalHeader().setSectionResizeMode(9, QHeaderView.Fixed)
+        self.table.setColumnWidth(9, 100)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.verticalHeader().setVisible(False)
@@ -82,11 +79,12 @@ class ProjectTab(QWidget):
             self.set_status_style(status_item, p.get("status", ""))
             self.table.setItem(i, 2, status_item)
 
-            self.table.setItem(i, 3, QTableWidgetItem(p.get("owner", "") or "-"))
-            self.table.setItem(i, 4, QTableWidgetItem(p.get("startDate", "") or "-"))
-            self.table.setItem(i, 5, QTableWidgetItem(p.get("deadline", "") or "-"))
-            self.table.setItem(i, 6, QTableWidgetItem(p.get("pending", "") or "-"))
-            self.table.setItem(i, 7, QTableWidgetItem(p.get("remark", "") or "-"))
+            self.table.setItem(i, 3, QTableWidgetItem("、".join(p.get("owner") or []) or "-"))
+            self.table.setItem(i, 4, QTableWidgetItem("、".join(p.get("members") or []) or "-"))
+            self.table.setItem(i, 5, QTableWidgetItem(p.get("startDate", "") or "-"))
+            self.table.setItem(i, 6, QTableWidgetItem(p.get("deadline", "") or "-"))
+            self.table.setItem(i, 7, QTableWidgetItem(p.get("pending", "") or "-"))
+            self.table.setItem(i, 8, QTableWidgetItem(p.get("remark", "") or "-"))
 
             # 操作按钮：用 上下stretch 让按钮按固定尺寸自然垂直居中，
             # 避免 QHBoxLayout+addStretch 依赖按钮 sizeHint 导致高度被压缩。
@@ -136,7 +134,7 @@ class ProjectTab(QWidget):
             op_layout.addStretch()
             op_layout.addWidget(btn_row)
             op_layout.addStretch()
-            self.table.setCellWidget(i, 8, op_widget)
+            self.table.setCellWidget(i, 9, op_widget)
 
     def set_status_style(self, item, status):
         colors = {

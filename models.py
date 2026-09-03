@@ -94,9 +94,22 @@ class WorkbenchData:
             self.projects = data.get("projects", [])
             self.todos = data.get("todos", [])
             self.people = data.get("people", list(DEFAULT_PEOPLE))
+            self._migrate()
         except Exception as e:
             print(f"加载数据失败: {e}")
             self.people = list(DEFAULT_PEOPLE)
+
+    def _migrate(self):
+        """数据结构迁移：owner 单值 -> 列表，项目补 members 字段"""
+        for p in self.projects:
+            if isinstance(p.get("owner"), str):
+                p["owner"] = [p["owner"]] if p["owner"] else []
+            if "members" not in p:
+                p["members"] = []
+        for t in self.todos:
+            if isinstance(t.get("owner"), str):
+                t["owner"] = [t["owner"]] if t["owner"] else []
+        self.save()
 
     def save(self):
         """保存数据到 JSON 文件"""
@@ -111,12 +124,13 @@ class WorkbenchData:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
     # ===================== 项目操作 =====================
-    def add_project(self, name, status, owner, start_date, deadline, pending, remark=""):
+    def add_project(self, name, status, owner, members, start_date, deadline, pending, remark=""):
         project = {
             "id": generate_id(),
             "name": name,
             "status": status,
             "owner": owner,
+            "members": members,
             "startDate": start_date,
             "deadline": deadline,
             "pending": pending,
@@ -132,7 +146,7 @@ class WorkbenchData:
         for p in self.projects:
             if p["id"] == project_id:
                 for key, value in kwargs.items():
-                    if key in ("name", "status", "owner", "startDate", "deadline", "pending", "remark"):
+                    if key in ("name", "status", "owner", "members", "startDate", "deadline", "pending", "remark"):
                         p[key] = value
                 p["updatedAt"] = now_str()
                 self.save()
@@ -213,12 +227,15 @@ class WorkbenchData:
             self.people.remove(name)
         # 同步清理项目和待办中已不存在的负责人
         for p in self.projects:
-            if p.get("owner") == name:
-                p["owner"] = ""
+            if name in (p.get("owner") or []):
+                p["owner"] = [x for x in p["owner"] if x != name]
+                p["updatedAt"] = now_str()
+            if name in (p.get("members") or []):
+                p["members"] = [x for x in p["members"] if x != name]
                 p["updatedAt"] = now_str()
         for t in self.todos:
-            if t.get("owner") == name:
-                t["owner"] = ""
+            if name in (t.get("owner") or []):
+                t["owner"] = [x for x in t["owner"] if x != name]
                 t["updatedAt"] = now_str()
         self.save()
 

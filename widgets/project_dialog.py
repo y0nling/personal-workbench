@@ -6,11 +6,35 @@
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
     QComboBox, QDateEdit, QTextEdit, QPushButton, QFormLayout,
-    QMessageBox
+    QMessageBox, QListWidget, QListWidgetItem, QAbstractItemView
 )
 from PyQt5.QtCore import Qt, QDate
 
 from config import PROJECT_STATUSES
+
+
+def make_check_list(items, checked_items=None, max_height=110):
+    """生成带勾选框的人员列表，返回 QListWidget"""
+    lst = QListWidget()
+    lst.setSelectionMode(QAbstractItemView.NoSelection)
+    lst.setMaximumHeight(max_height)
+    checked = set(checked_items or [])
+    for name in items:
+        it = QListWidgetItem(name)
+        it.setFlags(it.flags() | Qt.ItemIsUserCheckable)
+        it.setCheckState(Qt.Checked if name in checked else Qt.Unchecked)
+        lst.addItem(it)
+    return lst
+
+
+def checked_items(lst):
+    """读取 QListWidget 中所有勾选项文本"""
+    result = []
+    for i in range(lst.count()):
+        it = lst.item(i)
+        if it.checkState() == Qt.Checked:
+            result.append(it.text())
+    return result
 
 
 class ProjectDialog(QDialog):
@@ -41,11 +65,11 @@ class ProjectDialog(QDialog):
         self.status_combo.addItems(PROJECT_STATUSES)
         form.addRow("项目状态", self.status_combo)
 
-        self.owner_combo = QComboBox()
-        self.owner_combo.addItem("请选择", "")
-        for person in self.data.people:
-            self.owner_combo.addItem(person, person)
-        form.addRow("负责人", self.owner_combo)
+        self.owner_list = make_check_list(self.data.people)
+        form.addRow("负责人", self.owner_list)
+
+        self.members_list = make_check_list(self.data.people)
+        form.addRow("项目成员", self.members_list)
 
         self.start_date_edit = QDateEdit()
         self.start_date_edit.setCalendarPopup(True)
@@ -89,9 +113,15 @@ class ProjectDialog(QDialog):
         p = self.project
         self.name_input.setText(p.get("name", ""))
         self.status_combo.setCurrentText(p.get("status", "未开始"))
-        owner = p.get("owner", "")
-        index = self.owner_combo.findData(owner)
-        self.owner_combo.setCurrentIndex(index if index >= 0 else 0)
+        # 负责人/成员为多选列表
+        owner = p.get("owner") or []
+        for i in range(self.owner_list.count()):
+            it = self.owner_list.item(i)
+            it.setCheckState(Qt.Checked if it.text() in owner else Qt.Unchecked)
+        members = p.get("members") or []
+        for i in range(self.members_list.count()):
+            it = self.members_list.item(i)
+            it.setCheckState(Qt.Checked if it.text() in members else Qt.Unchecked)
         start_date = p.get("startDate", "")
         if start_date:
             try:
@@ -119,7 +149,8 @@ class ProjectDialog(QDialog):
         return {
             "name": self.name_input.text().strip(),
             "status": self.status_combo.currentText(),
-            "owner": self.owner_combo.currentData() or "",
+            "owner": checked_items(self.owner_list),
+            "members": checked_items(self.members_list),
             "startDate": start_date,
             "deadline": deadline,
             "pending": self.pending_input.toPlainText().strip(),

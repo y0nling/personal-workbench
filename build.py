@@ -36,6 +36,7 @@ def main():
         "--hidden-import=widgets.project_dialog",
         "--hidden-import=widgets.todo_dialog",
         "--hidden-import=widgets.export_xlsx_dialog",
+        "--hidden-import=widgets.todo_calendar",
         "--hidden-import=widgets.side_panel",
         "--hidden-import=widgets.tray_icon",
         "--collect-all", "PyQt5",

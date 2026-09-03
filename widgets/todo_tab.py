@@ -9,7 +9,7 @@ from datetime import datetime
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QComboBox,
     QDateEdit, QPushButton, QLabel, QScrollArea, QFrame,
-    QMessageBox, QDialog, QSplitter
+    QMessageBox, QDialog, QSplitter, QToolButton, QMenu, QAction
 )
 from PyQt5.QtCore import Qt, QDate, QSize
 from PyQt5.QtGui import QIcon, QColor, QPixmap, QPainter, QPen
@@ -97,9 +97,9 @@ class TodoRow(QWidget):
         mid.addWidget(self.lbl_content)
 
         metas = []
-        owner = todo.get("owner", "")
-        if owner:
-            metas.append(f"👤 {owner}")
+        owners = todo.get("owner") or []
+        if owners:
+            metas.append(f"👤 {'、'.join(owners)}")
         if todo.get("deadline"):
             dl_text = todo["deadline"].replace("T", " ")[:16]
             metas.append(("⏰ " if not overdue else "⚠️ 逾期 ") + dl_text)
@@ -174,10 +174,21 @@ class TodoTab(QWidget):
         self.input_content.returnPressed.connect(self.quick_add)
         add_layout.addWidget(self.input_content, 1)
 
-        self.combo_owner = QComboBox()
+        self.combo_owner = QToolButton()
+        self.combo_owner.setText("无负责人")
+        self.combo_owner.setPopupMode(QToolButton.InstantPopup)
         self.combo_owner.setMinimumHeight(34)
-        self.combo_owner.setMaximumWidth(130)
-        self.combo_owner.setStyleSheet("QComboBox { background: transparent; }")
+        self.combo_owner.setMaximumWidth(150)
+        self.combo_owner.setStyleSheet(
+            "QToolButton { background: transparent; border: 1px solid #cbd5e1;"
+            " border-radius: 6px; padding: 0 10px; }"
+            "QToolButton:hover { border-color: #2563eb; }"
+            "QMenu::item { padding: 6px 20px; }"
+            "QMenu::item:selected { background-color: #dbeafe; }"
+        )
+        self.owner_menu = QMenu(self)
+        self.combo_owner.setMenu(self.owner_menu)
+        self._quick_owners = set()  # 快速添加时选中的负责人
         self.reload_owners()
         add_layout.addWidget(self.combo_owner)
 
@@ -233,18 +244,37 @@ class TodoTab(QWidget):
         root.addWidget(self.splitter, 1)
 
     def reload_owners(self):
-        """重新加载负责人下拉（人员变化后调用）"""
-        self.combo_owner.clear()
-        self.combo_owner.addItem("无负责人", "")
+        """重新加载负责人多选菜单（人员变化后调用）"""
+        self.owner_menu.clear()
+        # 保留已勾选项（去掉已删除人员）
+        self._quick_owners = {n for n in self._quick_owners if n in self.data.people}
         for person in self.data.people:
-            self.combo_owner.addItem(person, person)
+            act = QAction(person, self)
+            act.setCheckable(True)
+            act.setChecked(person in self._quick_owners)
+            act.triggered.connect(lambda checked, name=person: self._toggle_quick_owner(name, checked))
+            self.owner_menu.addAction(act)
+        self._update_owner_button_text()
+
+    def _toggle_quick_owner(self, name, checked):
+        if checked:
+            self._quick_owners.add(name)
+        else:
+            self._quick_owners.discard(name)
+        self._update_owner_button_text()
+
+    def _update_owner_button_text(self):
+        if self._quick_owners:
+            self.combo_owner.setText("、".join(sorted(self._quick_owners)))
+        else:
+            self.combo_owner.setText("无负责人")
 
     def quick_add(self):
         content = self.input_content.text().strip()
         if not content:
             QMessageBox.information(self, "提示", "请先输入待办内容")
             return
-        owner = self.combo_owner.currentData() or ""
+        owner = sorted(self._quick_owners)
         d = self.edit_deadline.date()
         deadline = d.toString("yyyy-MM-dd") if d.isValid() and not d.isNull() else ""
         self.data.add_todo(content, owner, deadline, "未完成", "")
