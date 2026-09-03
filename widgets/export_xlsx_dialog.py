@@ -54,14 +54,14 @@ def export_projects_to_xlsx(data, parent=None):
         }
 
         for idx, p in enumerate(sorted_projects, start=1):
+            # 负责人与成员合并一列，保持顿号分隔（Excel 无法按名字着色，仅文字区分）
             owners = p.get("owner") or []
             members = p.get("members") or []
-            owner_parts = [f"{n}（负责人）" for n in owners]
             row = [
                 idx,
                 p.get("name", ""),
                 p.get("status", ""),
-                "、".join(owner_parts + members) or "-",
+                "、".join(owners + members) or "-",
                 p.get("startDate", "") or "-",
                 p.get("deadline", "") or "-",
                 p.get("pending", "") or "-",

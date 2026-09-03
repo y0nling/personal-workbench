@@ -121,7 +121,33 @@ class PersonalCenterTab(QWidget):
     def on_font_changed(self, index):
         scale = self.combo_font.itemData(index)
         self.settings.set_font_scale(scale)
-        QMessageBox.information(
-            self, "提示",
-            "字体大小已调整，重启应用后生效。"
-        )
+        # 弹窗确认：暂不重启 / 马上重启
+        msg = QMessageBox(self)
+        msg.setWindowTitle("字体大小已调整")
+        msg.setText("字体大小已修改，需要重启应用后生效。")
+        btn_restart = msg.addButton("马上重启", QMessageBox.AcceptRole)
+        btn_later = msg.addButton("暂不重启", QMessageBox.RejectRole)
+        msg.setDefaultButton(btn_later)
+        msg.exec_()
+        if msg.clickedButton() == btn_restart:
+            self._restart_app()
+
+    def _restart_app(self):
+        """重启应用：启动新进程后退出当前进程"""
+        import sys
+        import os
+        import subprocess
+        exe = sys.executable
+        # PyInstaller 打包后为 exe，开发时为 python main.py
+        if getattr(sys, "frozen", False):
+            cmd = [exe]
+        else:
+            cmd = [exe, "main.py"]
+        # 分离启动新进程
+        if sys.platform == "win32":
+            subprocess.Popen(cmd, creationflags=subprocess.DETACHED_PROCESS, close_fds=True)
+        else:
+            subprocess.Popen(cmd, start_new_session=True)
+        # 退出当前应用
+        from PyQt5.QtWidgets import QApplication
+        QApplication.instance().quit()

@@ -79,8 +79,8 @@ class ProjectTab(QWidget):
             self.set_status_style(status_item, p.get("status", ""))
             self.table.setItem(i, 2, status_item)
 
-            # 项目成员列：负责人名字后加（负责人）区分，与成员合并一列
-            self.table.setItem(i, 3, QTableWidgetItem(self.format_members_text(p)))
+            # 项目成员列：负责人蓝色加粗 + 顿号 + 成员默认色，合并一列
+            self.table.setCellWidget(i, 3, self._make_members_widget(p))
             self.table.setItem(i, 4, QTableWidgetItem(p.get("startDate", "") or "-"))
             self.table.setItem(i, 5, QTableWidgetItem(p.get("deadline", "") or "-"))
             self.table.setItem(i, 6, QTableWidgetItem(p.get("pending", "") or "-"))
@@ -136,13 +136,37 @@ class ProjectTab(QWidget):
             op_layout.addStretch()
             self.table.setCellWidget(i, 8, op_widget)
 
-    def format_members_text(self, p):
-        """合并负责人与项目成员为一列：负责人后加（负责人）区分，成员按原序拼接"""
+    def _make_members_widget(self, p):
+        """项目成员列单元格 Widget：负责人蓝色加粗，成员默认色，顿号分隔"""
+        from PyQt5.QtWidgets import QWidget as _QWidget, QHBoxLayout as _QHBoxLayout, QLabel as _QLabel
         owners = p.get("owner") or []
         members = p.get("members") or []
-        parts = [f"{n}（负责人）" for n in owners]
-        parts.extend(members)
-        return "、".join(parts) or "-"
+
+        widget = _QWidget()
+        layout = _QHBoxLayout(widget)
+        layout.setContentsMargins(10, 0, 10, 0)
+        layout.setSpacing(0)
+
+        if not owners and not members:
+            lbl = _QLabel("-")
+            lbl.setStyleSheet("color: #94a3b8;")
+            layout.addWidget(lbl)
+        else:
+            first = True
+            for name in owners + members:
+                if not first:
+                    sep = _QLabel("、")
+                    sep.setStyleSheet("color: #64748b;")
+                    layout.addWidget(sep)
+                lbl = _QLabel(name)
+                if name in owners:
+                    lbl.setStyleSheet("color: #2563eb; font-weight: bold;")
+                else:
+                    lbl.setStyleSheet("color: #1e293b;")
+                layout.addWidget(lbl)
+                first = False
+        layout.addStretch()
+        return widget
 
     def set_status_style(self, item, status):
         colors = {
