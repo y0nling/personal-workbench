@@ -47,6 +47,13 @@ class ProjectDialog(QDialog):
             self.owner_combo.addItem(person, person)
         form.addRow("负责人", self.owner_combo)
 
+        self.start_date_edit = QDateEdit()
+        self.start_date_edit.setCalendarPopup(True)
+        self.start_date_edit.setDisplayFormat("yyyy-MM-dd")
+        self.start_date_edit.setDate(QDate.currentDate())
+        self.start_date_edit.setSpecialValueText("未设置")
+        form.addRow("开始时间", self.start_date_edit)
+
         self.deadline_edit = QDateEdit()
         self.deadline_edit.setCalendarPopup(True)
         self.deadline_edit.setDisplayFormat("yyyy-MM-dd")
@@ -85,6 +92,15 @@ class ProjectDialog(QDialog):
         owner = p.get("owner", "")
         index = self.owner_combo.findData(owner)
         self.owner_combo.setCurrentIndex(index if index >= 0 else 0)
+        start_date = p.get("startDate", "")
+        if start_date:
+            try:
+                self.start_date_edit.setDate(QDate.fromString(start_date, "yyyy-MM-dd"))
+            except Exception:
+                pass
+        else:
+            self.start_date_edit.setDate(QDate())
+            self.start_date_edit.clear()
         deadline = p.get("deadline", "")
         if deadline:
             try:
@@ -98,11 +114,13 @@ class ProjectDialog(QDialog):
         self.remark_input.setPlainText(p.get("remark", ""))
 
     def get_data(self):
+        start_date = self.start_date_edit.date().toString("yyyy-MM-dd") if self.start_date_edit.date().isValid() and not self.start_date_edit.date().isNull() else ""
         deadline = self.deadline_edit.date().toString("yyyy-MM-dd") if self.deadline_edit.date().isValid() and not self.deadline_edit.date().isNull() else ""
         return {
             "name": self.name_input.text().strip(),
             "status": self.status_combo.currentText(),
             "owner": self.owner_combo.currentData() or "",
+            "startDate": start_date,
             "deadline": deadline,
             "pending": self.pending_input.toPlainText().strip(),
             "remark": self.remark_input.toPlainText().strip(),

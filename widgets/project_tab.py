@@ -50,14 +50,15 @@ class ProjectTab(QWidget):
         self.table = QTableWidget()
         self.table.setColumnCount(9)
         self.table.setHorizontalHeaderLabels([
-            "序号", "项目名称", "状态", "负责人", "截止日期",
-            "待协调事项", "创建时间", "最后更新", "操作"
+            "序号", "项目名称", "状态", "负责人", "开始时间", "截止日期",
+            "待协调事项", "备注", "操作"
         ])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeToContents)
         # 操作列固定宽度，避免按钮被挤压
         self.table.horizontalHeader().setSectionResizeMode(8, QHeaderView.Fixed)
         self.table.setColumnWidth(8, 100)
@@ -82,10 +83,10 @@ class ProjectTab(QWidget):
             self.table.setItem(i, 2, status_item)
 
             self.table.setItem(i, 3, QTableWidgetItem(p.get("owner", "") or "-"))
-            self.table.setItem(i, 4, QTableWidgetItem(p.get("deadline", "") or "-"))
-            self.table.setItem(i, 5, QTableWidgetItem(p.get("pending", "") or "-"))
-            self.table.setItem(i, 6, QTableWidgetItem(short_datetime(p.get("createdAt", ""))))
-            self.table.setItem(i, 7, QTableWidgetItem(short_datetime(p.get("updatedAt", ""))))
+            self.table.setItem(i, 4, QTableWidgetItem(p.get("startDate", "") or "-"))
+            self.table.setItem(i, 5, QTableWidgetItem(p.get("deadline", "") or "-"))
+            self.table.setItem(i, 6, QTableWidgetItem(p.get("pending", "") or "-"))
+            self.table.setItem(i, 7, QTableWidgetItem(p.get("remark", "") or "-"))
 
             # 操作按钮：用 上下stretch 让按钮按固定尺寸自然垂直居中，
             # 避免 QHBoxLayout+addStretch 依赖按钮 sizeHint 导致高度被压缩。

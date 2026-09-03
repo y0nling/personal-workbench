@@ -32,7 +32,7 @@ def export_projects_to_xlsx(data, parent=None):
         ws.title = "项目看板"
 
         # 表头
-        headers = ["序号", "项目名称", "状态", "负责人", "截止日期", "待协调事项", "备注", "创建时间", "最后更新时间"]
+        headers = ["序号", "项目名称", "状态", "负责人", "开始时间", "截止日期", "待协调事项", "备注", "创建时间", "最后更新时间"]
         ws.append(headers)
 
         # 表头样式
@@ -59,6 +59,7 @@ def export_projects_to_xlsx(data, parent=None):
                 p.get("name", ""),
                 p.get("status", ""),
                 p.get("owner", "") or "-",
+                p.get("startDate", "") or "-",
                 p.get("deadline", "") or "-",
                 p.get("pending", "") or "-",
                 p.get("remark", "") or "-",
@@ -77,7 +78,7 @@ def export_projects_to_xlsx(data, parent=None):
             status_cell.alignment = Alignment(horizontal="center", vertical="center")
 
         # 设置列宽
-        col_widths = [8, 30, 12, 15, 15, 35, 25, 20, 20]
+        col_widths = [8, 30, 12, 15, 15, 15, 35, 25, 20, 20]
         for i, width in enumerate(col_widths, start=1):
             ws.column_dimensions[__import__("openpyxl").utils.get_column_letter(i)].width = width
 

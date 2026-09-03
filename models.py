@@ -111,12 +111,13 @@ class WorkbenchData:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
     # ===================== 项目操作 =====================
-    def add_project(self, name, status, owner, deadline, pending, remark=""):
+    def add_project(self, name, status, owner, start_date, deadline, pending, remark=""):
         project = {
             "id": generate_id(),
             "name": name,
             "status": status,
             "owner": owner,
+            "startDate": start_date,
             "deadline": deadline,
             "pending": pending,
             "remark": remark,
@@ -131,7 +132,7 @@ class WorkbenchData:
         for p in self.projects:
             if p["id"] == project_id:
                 for key, value in kwargs.items():
-                    if key in ("name", "status", "owner", "deadline", "pending", "remark"):
+                    if key in ("name", "status", "owner", "startDate", "deadline", "pending", "remark"):
                         p[key] = value
                 p["updatedAt"] = now_str()
                 self.save()
