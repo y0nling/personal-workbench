@@ -55,21 +55,21 @@ class PeopleTab(QWidget):
             self.table.setItem(i, 0, QTableWidgetItem(str(i + 1)))
             self.table.setItem(i, 1, QTableWidgetItem(person))
 
-            # 操作按钮：纯图标，悬停提示
+            # 操作按钮：纯图标，居中放置，自动适应当前行高
             op_widget = QWidget()
             op_layout = QHBoxLayout(op_widget)
-            op_layout.setContentsMargins(6, 4, 6, 4)
-            op_layout.setSpacing(8)
+            op_layout.setContentsMargins(4, 0, 4, 0)
+            op_layout.setSpacing(0)
 
             btn_delete = QPushButton()
-            btn_delete.setFixedSize(32, 32)
-            btn_delete.setIcon(QIcon(svg_pixmap(ICON_DELETE, 15, "#dc2626")))
-            btn_delete.setIconSize(QSize(15, 15))
+            btn_delete.setFixedSize(36, 36)
+            btn_delete.setIcon(QIcon(svg_pixmap(ICON_DELETE, 18, "#dc2626")))
+            btn_delete.setIconSize(QSize(18, 18))
             btn_delete.setFlat(True)
             btn_delete.setCursor(Qt.PointingHandCursor)
             btn_delete.setToolTip(f"删除人员【{person}】")
             btn_delete.setStyleSheet(
-                "QPushButton { border: none; background: transparent; border-radius: 8px; }"
+                "QPushButton { border: none; background: transparent; border-radius: 10px; }"
                 "QPushButton:hover { background-color: #fef2f2; }"
             )
             btn_delete.clicked.connect(lambda _, name=person: self.delete_person(name))

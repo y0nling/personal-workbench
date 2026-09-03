@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QTextEdit, QMessageBox, QFileDialog, QGridLayout, QGroupBox
 )
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QIcon
 
 from utils.icons import svg_pixmap, ICON_REFRESH, ICON_EXPORT
@@ -32,13 +32,16 @@ class SummaryTab(QWidget):
         # 工具栏
         toolbar = QHBoxLayout()
         toolbar.setSpacing(12)
-        self.btn_generate = QPushButton("重新生成")
+        self.btn_generate = QPushButton(" 重新生成 ")
         self.btn_generate.setProperty("class", "primary")
-        self.btn_generate.setIcon(QIcon(svg_pixmap(ICON_REFRESH, 14, "#ffffff")))
+        self.btn_generate.setMinimumHeight(38)
+        self.btn_generate.setIcon(QIcon(svg_pixmap(ICON_REFRESH, 15, "#ffffff")))
+        self.btn_generate.setIconSize(QSize(15, 15))
         self.btn_generate.clicked.connect(self.refresh)
-        self.btn_export = QPushButton("导出 TXT")
-        self.btn_export.setProperty("class", "btn-sm")
-        self.btn_export.setIcon(QIcon(svg_pixmap(ICON_EXPORT, 14, "#475569")))
+        self.btn_export = QPushButton(" 导出 TXT ")
+        self.btn_export.setMinimumHeight(38)
+        self.btn_export.setIcon(QIcon(svg_pixmap(ICON_EXPORT, 15, "#475569")))
+        self.btn_export.setIconSize(QSize(15, 15))
         self.btn_export.clicked.connect(self.export_txt)
         toolbar.addWidget(self.btn_generate)
         toolbar.addWidget(self.btn_export)

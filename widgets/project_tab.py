@@ -86,34 +86,34 @@ class ProjectTab(QWidget):
             self.table.setItem(i, 6, QTableWidgetItem(short_datetime(p.get("createdAt", ""))))
             self.table.setItem(i, 7, QTableWidgetItem(short_datetime(p.get("updatedAt", ""))))
 
-            # 操作按钮：纯图标，悬停提示，避免文字被截断
+            # 操作按钮：纯图标，居中放置，自动适应当前行高
             op_widget = QWidget()
             op_layout = QHBoxLayout(op_widget)
-            op_layout.setContentsMargins(6, 4, 6, 4)
-            op_layout.setSpacing(8)
+            op_layout.setContentsMargins(4, 0, 4, 0)
+            op_layout.setSpacing(6)
 
             btn_edit = QPushButton()
-            btn_edit.setFixedSize(32, 32)
-            btn_edit.setIcon(QIcon(svg_pixmap(ICON_EDIT, 15, "#2563eb")))
-            btn_edit.setIconSize(QSize(15, 15))
+            btn_edit.setFixedSize(36, 36)
+            btn_edit.setIcon(QIcon(svg_pixmap(ICON_EDIT, 18, "#2563eb")))
+            btn_edit.setIconSize(QSize(18, 18))
             btn_edit.setFlat(True)
             btn_edit.setCursor(Qt.PointingHandCursor)
             btn_edit.setToolTip("编辑项目")
             btn_edit.setStyleSheet(
-                "QPushButton { border: none; background: transparent; border-radius: 8px; }"
+                "QPushButton { border: none; background: transparent; border-radius: 10px; }"
                 "QPushButton:hover { background-color: #eff6ff; }"
             )
             btn_edit.clicked.connect(lambda _, pid=p["id"]: self.edit_project(pid))
 
             btn_delete = QPushButton()
-            btn_delete.setFixedSize(32, 32)
-            btn_delete.setIcon(QIcon(svg_pixmap(ICON_DELETE, 15, "#dc2626")))
-            btn_delete.setIconSize(QSize(15, 15))
+            btn_delete.setFixedSize(36, 36)
+            btn_delete.setIcon(QIcon(svg_pixmap(ICON_DELETE, 18, "#dc2626")))
+            btn_delete.setIconSize(QSize(18, 18))
             btn_delete.setFlat(True)
             btn_delete.setCursor(Qt.PointingHandCursor)
             btn_delete.setToolTip("删除项目")
             btn_delete.setStyleSheet(
-                "QPushButton { border: none; background: transparent; border-radius: 8px; }"
+                "QPushButton { border: none; background: transparent; border-radius: 10px; }"
                 "QPushButton:hover { background-color: #fef2f2; }"
             )
             btn_delete.clicked.connect(lambda _, pid=p["id"]: self.delete_project(pid))
