@@ -7,7 +7,7 @@ import sys
 import os
 import traceback
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QMessageBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QMessageBox, QDialog
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
