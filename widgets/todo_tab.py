@@ -232,6 +232,7 @@ class TodoTab(QWidget):
         self.calendar = TodoCalendar(self.data)
         self.calendar.setFixedWidth(320)
         self.calendar.day_clicked.connect(self.on_calendar_day_clicked)
+        self.calendar.today_clicked.connect(self.on_today_clicked)
 
         # 左右分栏：左=月历，右=待办列表
         self.splitter = QSplitter(Qt.Horizontal)
@@ -337,6 +338,11 @@ class TodoTab(QWidget):
     def on_calendar_day_clicked(self, day_str):
         """点击日历某天：选中该日并筛选右侧列表显示当天待办"""
         self.calendar.select_day(day_str)
+        self.refresh()
+
+    def on_today_clicked(self):
+        """点击「今天」：清除日期筛选，恢复显示全部待办"""
+        self.calendar.selected_day = ""
         self.refresh()
 
     def toggle_todo(self, todo_id):

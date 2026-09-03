@@ -9,7 +9,7 @@ import traceback
 import ctypes
 import threading
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QMessageBox, QDialog
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QMessageBox
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
@@ -21,11 +21,9 @@ from widgets.todo_tab import TodoTab
 from widgets.summary_tab import SummaryTab
 from widgets.people_tab import PeopleTab
 from widgets.personal_center import PersonalCenterTab
-from widgets.login_dialog import LoginDialog
 from widgets.tray_icon import TrayIcon
 from utils.style import build_app_style
 from utils.icons import app_icon
-from utils.auth import AuthManager
 from utils.settings import AppSettings
 
 
@@ -135,7 +133,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.todo_tab, "待办事项")
         self.tabs.addTab(self.summary_tab, "周总结")
         self.tabs.addTab(self.people_tab, "人员管理")
-        self.tabs.addTab(self.personal_tab, "个人中心")
+        self.tabs.addTab(self.personal_tab, "设置")
 
         self.tabs.currentChanged.connect(self.on_tab_changed)
 
@@ -189,17 +187,9 @@ def main():
         settings = AppSettings()
         app.setStyleSheet(build_app_style(settings.font_scale))
 
-        # ===== 登录 =====
-        auth = AuthManager()
-        login = LoginDialog(auth)
-        if login.exec_() != QDialog.Accepted:
-            sys.exit(0)
-
         data = WorkbenchData()
 
         window = MainWindow(data, settings)
-        # 登录成功后把 auth 注入个人中心
-        window.personal_tab.set_auth(auth)
         window.show()
 
         # 启动单实例监听

@@ -115,6 +115,7 @@ class TodoCalendar(QWidget):
     """月历侧栏：标题栏（月份 + 左右切换）+ 星期头 + 日期网格"""
 
     day_clicked = pyqtSignal(str)  # yyyy-MM-dd
+    today_clicked = pyqtSignal()  # 点击「今天」：跳回当月并清除筛选
 
     def __init__(self, data, parent=None):
         super().__init__(parent)
@@ -153,7 +154,7 @@ class TodoCalendar(QWidget):
 
         self.btn_today = QPushButton("今天")
         self.btn_today.setProperty("class", "btn-sm")
-        self.btn_today.clicked.connect(self.clear_selection)
+        self.btn_today.clicked.connect(self._on_today)
         header.addWidget(self.btn_today)
 
         self.btn_next = QPushButton()
@@ -186,6 +187,12 @@ class TodoCalendar(QWidget):
         self.grid = QGridLayout()
         self.grid.setSpacing(3)
         root.addLayout(self.grid, 1)
+
+    def _on_today(self):
+        """点击「今天」：展示月跳回当月、清除选中，并通知外部清列表筛选"""
+        self.selected_day = ""
+        self.go_today()
+        self.today_clicked.emit()
 
     def go_today(self):
         today = date.today()
