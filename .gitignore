@@ -1,0 +1,24 @@
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+
+# PyInstaller 产物
+build/
+dist/
+*.spec
+
+# 调试与日志
+*.log
+output*.txt
+debug_run*.py
+
+# 开发环境
+.idea/
+.vscode/
+.venv/
+venv/
+
+# 系统文件
+Thumbs.db
+.DS_Store
