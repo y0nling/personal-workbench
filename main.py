@@ -44,27 +44,15 @@ def is_first_instance():
     命名互斥体是内核对象，进程被杀自动释放，绝无僵尸。"""
     if _kernel32 is None:
         return True  # 非 Windows 不做单实例限制
-    # 先探测是否已有别的进程创建了互斥体
-    existing = _kernel32.OpenMutexW(0x00100000, False, MUTEX_NAME)  # SYNCHRONIZE
-    if existing:
-        _kernel32.CloseHandle(existing)
+    # 直接创建互斥体：GetLastError==183（ERROR_ALREADY_EXISTS）说明已有实例
+    # 不用 OpenMutex 探测：OpenMutex 在权限不足/对象残留时行为不可靠，
+    # 且进程被杀后内核对象可能残留导致误判
+    handle = _kernel32.CreateMutexW(None, True, MUTEX_NAME)
+    last_error = ctypes.get_last_error()
+    if last_error == 183:  # ERROR_ALREADY_EXISTS
+        _kernel32.CloseHandle(handle)
         return False
-    # 没有则创建占住
-    _kernel32.CreateMutexW(None, True, MUTEX_NAME)
     return True
-
-
-def activate_existing_instance():
-    """已有实例在跑时，连它的本地 socket 通知激活窗口。返回是否成功通知。"""
-    socket = QLocalSocket()
-    socket.connectToServer(SINGLE_INSTANCE_KEY)
-    if socket.waitForConnected(400):
-        socket.write(b"activate")
-        socket.flush()
-        socket.waitForBytesWritten(400)
-        socket.disconnectFromServer()
-        return True
-    return False
 
 
 def activate_existing_instance():

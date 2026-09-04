@@ -22,3 +22,7 @@ venv/
 # 系统文件
 Thumbs.db
 .DS_Store
+
+# 个人数据（勿传 GitHub）
+workbench_data.json
+settings.json
